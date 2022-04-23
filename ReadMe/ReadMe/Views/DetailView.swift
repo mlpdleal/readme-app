@@ -11,9 +11,8 @@ import SwiftUI
 struct DetailView: View {
     
     @ObservedObject var book: Book
-    @Binding var image: Image?
-    @State var showingImagePicker = false
-    @State var showingDeleteDialog = false
+    @EnvironmentObject var library: Library
+
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -26,49 +25,21 @@ struct DetailView: View {
                 }
                 TitleAndAuthorStack(book: book, titleFont: .title, authorFont: .title2)
             }
-            VStack {
-                Divider()
-                    .padding(.vertical)
-                TextField("Review...", text: $book.microReview)
-                Divider()
-                    .padding(.vertical)
-                Book.Image(image: image, title: book.title, cornerRadius: 16)
-                    .scaledToFit()
-                HStack {
-                    if image != nil {
-                        Spacer()
-                        Button("Delete image"){
-                            showingDeleteDialog = true
-                        }
-                    }
-                    Spacer()
-                    Button("Update Image..."){
-                        showingImagePicker = true
-                    }
-                    Spacer()
-                }
-                .padding()
-            }
-            Spacer()
+            ReviewAndImageStack(book: book, image: $library.images[book])
+            
         }
         .padding()
-        .sheet(isPresented: $showingImagePicker) {
-            PHPickerViewController.View(image: $image)
-        }
-        .confirmationDialog(
-            "Delete image for \(book.title)?",
-             isPresented: $showingDeleteDialog) {
-                 Button("Delete", role: .destructive) { image = nil }
-        } message: {
-            Text("Delete image for \(book.title)?")
-        }
+
     
     }
 }
 
 struct DetailView_Previews: PreviewProvider {
     static var previews: some View {
-        DetailView(book: .init(), image: .constant(nil))
+        DetailView(book: .init())
+            .environmentObject(Library())
             .previewedInAllColorSchemes
     }
 }
+
+
