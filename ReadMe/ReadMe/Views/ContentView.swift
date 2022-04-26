@@ -31,10 +31,12 @@ struct ContentView: View {
                 .padding(.vertical, 8)
                 .sheet(isPresented: $addingNewBook, content: NewBookView.init)
                 
-                ForEach(library.sortedBooks) { book in
-                    BookRow(book: book)
+                ForEach(Section.allCases, id: \.self){
+                    SectionView(section: $0)
                 }
             }
+            .listStyle(.insetGrouped)
+            .toolbar(content: EditButton.init)
             .navigationTitle("My Library")
         }
     }
@@ -64,6 +66,73 @@ struct BookRow: View {
             }
         }
         .padding(.vertical)
+    }
+}
+
+private struct SectionView: View{
+    let section: Section
+    @EnvironmentObject var library: Library
+    
+    var title: String {
+        switch section{
+        case .readMe:
+            return "Read Me!"
+        case .finished:
+            return "Finished!"
+        }
+    }
+    
+    var body: some View{
+        if let books = library.sortedBooks[section]{
+            SwiftUI.Section{
+                ForEach(books) { book in
+                    BookRow(book: book)
+                        .swipeActions(edge: .leading){
+                            Button {
+                                withAnimation{
+                                    book.readMe.toggle()
+                                    library.sortBooks()
+                                }
+                            } label: {
+                                book.readMe
+                                ? Label("Finished!", systemImage: "bookmark.slash")
+                                : Label("Read Me!", systemImage: "bookmark")
+                            }
+                            .tint(.accentColor)
+                        }
+                        .swipeActions(edge: .trailing){
+                            Button(role: .destructive){
+                                guard let index = books.firstIndex(where: { $0.id == book.id })
+                                else { return }
+                                
+                                withAnimation{
+                                    library.deleteBooks(atOffsets: .init(integer: index), section: section)
+                                }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                }
+                .onDelete{ indexSet in
+                    library.deleteBooks(atOffsets: indexSet, section: section)
+                }
+                .onMove{ indexes, newOffset in
+                    library.moveBooks(oldOffsets: indexes, newOffset: newOffset, section: section)
+                }
+                .labelStyle(.iconOnly)
+            } header: {
+                ZStack {
+                    Image("BookTexture")
+                        .resizable()
+                        .scaledToFit()
+                    
+                    Text(title)
+                        .font(.custom("American Typewriter", size: 24))
+                        .foregroundColor(.primary)
+                }
+                .listRowInsets(.init())
+            }
+        }
     }
 }
 
